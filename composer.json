@@ -1,0 +1,21 @@
+{
+    "name": "mhunesi/yii2-ups",
+    "description": "Yii2 UPS Integration",
+    "type": "yii2-extension",
+    "keywords": ["yii2","extension"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Gezer Ayakkabı",
+            "email": "dev@gezer.com"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": "~2.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "mhunesi\\ups\\": "src"
+        }
+    }
+}

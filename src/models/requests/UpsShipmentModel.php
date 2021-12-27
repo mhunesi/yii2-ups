@@ -19,18 +19,21 @@ class UpsShipmentModel extends Model
      * @var ShipmentInfo
      */
     public $ShipmentInfo;
+
     /**
      * ReturnLabelLink
      *
      * @var bool
      */
     public $ReturnLabelLink;
+
     /**
      * ReturnLabelImage
      *
      * @var bool
      */
     public $ReturnLabelImage;
+
     /**
      * PaperSize
      *

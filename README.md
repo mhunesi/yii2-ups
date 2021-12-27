@@ -79,7 +79,7 @@ $shipmentInfo = new ShipmentInfo
     "PaymentType"=> $paymentType, 1-2-3 ne olabilir 
     "PackageType"=> $packageType,
     "NumberOfPackages"=>$packageCount,
-    "CustomerReferance"=> $shipment->customerRefferance,
+    "CustomerReference"=> $shipment->customerReference,
     "CustomerInvoiceNumber"=> $shipment->InvoiceNo,
     "DescriptionOfGoods"=> $shipment->productsDescription,
     "DeliveryNotificationEmail"=> $shipment->sender->email,
@@ -99,31 +99,31 @@ $shipmentInfo = new ShipmentInfo
     ]
 ); 
 
-    $sessionID = $this->ups->login();
-    $shipmentRequest = new UpsShipmentModel();
-    $shipmentRequest->SessionID  = $sessionID;
-    $shipmentRequest->ShipmentInfo = $shipmentInfo;
-    $shipmentRequest->ReturnLabelLink =false;
-    $shipmentRequest->ReturnLabelImage= true;
-    $shipmentRequest->PaperSize="4X6";
+$sessionID = $this->ups->login();
+$shipmentRequest = new UpsShipmentModel();
+$shipmentRequest->SessionID  = $sessionID;
+$shipmentRequest->ShipmentInfo = $shipmentInfo;
+$shipmentRequest->ReturnLabelLink =false;
+$shipmentRequest->ReturnLabelImage= true;
+$shipmentRequest->PaperSize="4X6";
 
-    $createShipmentResponse = $this->ups->createShipment($shipmentRequest);
-    if($createShipmentResponse->status)
-    {
-        echo($createShipmentResponse->cargoTrackingNo);
-        foreach ($createShipmentResponse->labelImage->string as $key => $value) {
-            file_put_contents($createShipmentResponse->cargoTrackingNo.$key."_.png",$value);
-        }
-    }else
-    {
-        print_r($createShipmentResponse->errorMessage);
-        $this->log($createShipmentResponse->requestAsXML,$result->responseAsXML);
+$createShipmentResponse = $this->ups->createShipment($shipmentRequest);
+if($createShipmentResponse->status)
+{
+    echo($createShipmentResponse->cargoTrackingNo);
+    foreach ($createShipmentResponse->labelImage->string as $key => $value) {
+        file_put_contents($createShipmentResponse->cargoTrackingNo.$key."_.png",$value);
     }
+}else
+{
+    print_r($createShipmentResponse->errorMessage);
+    $this->log($createShipmentResponse->requestAsXML,$result->responseAsXML);
+}
 ````
 
 ## 3- Cancel işlemi
 
-````php 
+```php 
 $sessionID = $this->ups->login();
 $customerRefferance="123459678";
 $cargoTrackingNumber="1Z3X9A7768036475220";

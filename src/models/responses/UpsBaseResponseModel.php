@@ -12,12 +12,14 @@ class UpsBaseResponseModel extends Model
      * @var bool requesting başarılı olup olmadığı bilgisi
      */
     public $status;
+
     /**
      * statusCode
      *
      * @var int htto response status code
      */
     public $statusCode;
+
     /**
      * errorCode
      *
@@ -25,24 +27,28 @@ class UpsBaseResponseModel extends Model
      * bir hata kodu varsa bu alana set edilecektir
      */
     public $errorCode;
+
     /**
      * errorMessage
      *
      * @var string hata mesajı
      */
     public $errorMessage;
+
     /**
      * response
      *
      * @var object success durumda dönen response body
      */
     public $response;
+
     /**
      * requestAsXML
      *
      * @var string
      */
     public $requestAsXML;
+
     /**
      * responseAsXML
      *

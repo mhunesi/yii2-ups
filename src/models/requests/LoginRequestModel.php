@@ -10,12 +10,14 @@ class LoginRequestModel
      * @var string
      */
     public $CustomerNumber;
+
     /**
      * UserName
      *
      * @var string
      */
     public $UserName;
+
     /**
      * Password
      *

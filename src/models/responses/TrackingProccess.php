@@ -13,13 +13,6 @@ class TrackingProccess extends Model
     public $Date;
 
     /**
-     * Time
-     *
-     * @var string
-     */
-    public $Time;
-
-    /**
      * StatusCode
      *
      * @var string

@@ -9,14 +9,7 @@ class UpsTrackingResponseModel extends UpsBaseResponseModel
      *
      * @var string
      */
-    public $TrackingNo;
-
-    /**
-     * CargoCompany
-     *
-     * @var string
-     */
-    public $CargoCompany;
+    public $TrackingNumber;
 
     /**
      * trackingHistory

@@ -7,25 +7,18 @@ class UpsCreateShipmentResponseModel extends UpsBaseResponseModel
     public $CargoTrackingNo;
 
     /**
-     * labelReturnType
+     * labelImage
      *
-     * @var string
+     * @var array
      */
-    public $LabelReturnType;
+    public $LabelZpl;
 
     /**
      * labelImage
      *
-     * @var string
+     * @var array
      */
-    public $LabelImage;
-
-    /**
-     * labelImageType
-     *
-     * @var string
-     */
-    public $LabelImageType;
+    public $LabelPng;
 
     /**
      * labelUrl

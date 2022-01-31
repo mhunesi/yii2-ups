@@ -3,19 +3,17 @@
 namespace mhunesi\ups;
 
 use DateTime;
-use mhunesi\ideasoft\models\requests\invoices\TrackingHistory;
 use mhunesi\ups\models\requests\UpsShipmentModel;
 use mhunesi\ups\models\responses\TrackingProccess;
 use mhunesi\ups\models\responses\UpsBaseResponseModel;
 use mhunesi\ups\models\responses\UpsCreateShipmentResponseModel;
 use mhunesi\ups\models\responses\UpsTrackingResponseModel;
-use mhunesi\ups\models\types\LabelImageType;
-use mhunesi\ups\models\types\LabelReturnType;
 use yii\base\Component;
 use yii\helpers\ArrayHelper;
 
 /**
  * This is just an example.
+ * Test Url : https://ws.ups.com.tr/wsCreateShipmenttest/wsCreateShipment.asmx?wsdl
  */
 class UPS extends Component
 {
@@ -24,27 +22,21 @@ class UPS extends Component
      *
      * @var string
      */
-    public $CustomerNumber;
+    public $customerNumber;
 
     /**
      * Username
      *
      * @var string
      */
-    public $Username;
+    public $username;
 
     /**
      * Password
      *
      * @var string
      */
-    public $Password;
-    /**
-     * IsTestInstance
-     *
-     * @var string
-     */
-    public $IsTestInstance;
+    public $password;
 
     /**
      * soapClient
@@ -61,33 +53,22 @@ class UPS extends Component
     protected $sessionID;
 
     /**
-     * base_url_test
-     *
      * @var string
      */
-    private $base_url_test = "https://ws.ups.com.tr/wsCreateShipmenttest/wsCreateShipment.asmx?wsdl";
-
-    /**
-     * base_url
-     *
-     * @var string
-     */
-    private $base_url = "http://ws.ups.com.tr/wsCreateShipment/wsCreateShipment.asmx?wsdl";
+    public $apiUrl = "http://ws.ups.com.tr/wsCreateShipment/wsCreateShipment.asmx?wsdl";
 
     /**
      * trackingUrl
-     *
      * @var string
      */
-    private $trackingUrl = "https://ws.ups.com.tr/QueryPackageInfo/wsQueryPackagesInfo.asmx?wsdl";
+    public $trackingApiUrl = "https://ws.ups.com.tr/QueryPackageInfo/wsQueryPackagesInfo.asmx?wsdl";
 
     /**
      * @throws \SoapFault
      */
     public function init()
     {
-        $url = $this->IsTestInstance ? $this->base_url_test : $this->base_url;
-        $this->prepareClient($url);
+        $this->prepareClient($this->apiUrl);
         $this->sessionID = $this->login();
     }
 
@@ -114,9 +95,9 @@ class UPS extends Component
     public function login()
     {
         $login = [
-            "CustomerNumber" => $this->CustomerNumber,
-            "UserName" => $this->Username,
-            "Password" => $this->Password
+            "CustomerNumber" => $this->customerNumber,
+            "UserName" => $this->username,
+            "Password" => $this->password
         ];
         $session = $this->soapClient->Login_Type1($login);
         return $session->Login_Type1Result->SessionID;
@@ -141,18 +122,16 @@ class UPS extends Component
         try {
             $shipment = ArrayHelper::toArray($shipmentRequest);
             $_response = $this->soapClient->CreateShipment_Type3_ZPL_Types($shipment);
-            if ($_response->CreateShipment_Type3_ZPL_TypesResult->ErrorCode != 0) {
+            if ((int)$_response->CreateShipment_Type3_ZPL_TypesResult->ErrorCode !== 0) {
                 throw new \Exception($_response->CreateShipment_Type3_ZPL_TypesResult->ErrorDefinition,
-                    $response->CreateShipment_Type3_ZPL_TypesResult->ErrorCode);
+                    $_response->CreateShipment_Type3_ZPL_TypesResult->ErrorCode);
             }
             $response->status = true;
             $response->response = $_response;
             $response->CargoTrackingNo = $_response->CreateShipment_Type3_ZPL_TypesResult->ShipmentNo;
-            $response->LabelReturnType = LabelReturnType::IMAGE;
-            $response->LabelImageType = LabelImageType::ZPL;
-            $response->LabelImage = $_response->CreateShipment_Type3_ZPL_TypesResult->ZplResult;
-            //$response->labelImage=$response->CreateShipment_Type3_ZPL_TypesResult->BarkodArrayPng;
-
+            $response->LabelZpl = (array)$_response->CreateShipment_Type3_ZPL_TypesResult->ZplResult->string;
+            $response->LabelPng =(array)($_response->CreateShipment_Type3_ZPL_TypesResult->BarkodArrayPng->string ?? []);
+            $response->LabelUrl = $_response->CreateShipment_Type3_ZPL_TypesResult->LinkForLabelPrinting;
         } catch (\Throwable $th) {
             $response->status = false;
             $response->errorMessage = $th->getMessage();
@@ -205,27 +184,29 @@ class UPS extends Component
         }
     }
 
-    public function tracking($cargoTrackingNumber)
+    public function tracking(string $cargoTrackingNumber)
     {
-        $this->prepareClient($this->trackingUrl);
+        $this->prepareClient($this->trackingApiUrl);
 
         $response = new UpsTrackingResponseModel();
 
         try {
-            $cancel = [
+            $data = [
                 "SessionID" => $this->sessionID,
                 "InformationLevel" => 10,
                 "TrackingNumber" => $cargoTrackingNumber
             ];
-            $_response = $this->soapClient->GetTransactionsByTrackingNumber_V1($cancel);
+            $_response = $this->soapClient->GetTransactionsByTrackingNumber_V1($data);
+
             $trackingHistory = [];
+
             foreach ($_response->GetTransactionsByTrackingNumber_V1Result->PackageTransaction as $key => $tracking) {
                 $datetime = new DateTime(str_replace("-", "", $tracking->ProcessTimeStamp));
                 $trackingHistory[] = new TrackingProccess([
-                    "Date" => $datetime->format("Y-m-d"),
-                    "Time" => $datetime->format("H:i:s"),
+                    "Date" => $datetime->format("Y-m-d H:i:s"),
                     "StatusCode" => $tracking->StatusCode,
-                    "Description" => $tracking->ProcessDescription1
+                    "Description" => $this->prepareDescription($tracking),
+                    "Location" => $tracking->OperationBranchName,
                 ]);
             }
             $response->TrackingHistory = $trackingHistory;
@@ -244,5 +225,80 @@ class UPS extends Component
             $response->client = $this->soapClient;
             return $response;
         }
+    }
+
+    public function trackingList($cargoTrackingNumbers, $trnType = 'ALL_TRANSACTIONS',$referansType = 'WAYBILL_TYPE')
+    {
+        $this->prepareClient($this->trackingApiUrl);
+
+        $response = new UpsTrackingResponseModel();
+
+        try {
+            $data = [
+                "SessionID" => $this->sessionID,
+                "InformationLevel" => 10,
+                'trnType' => $trnType,
+                "refList" => [
+                    'referansType' => $referansType,
+                    'referansList' => $cargoTrackingNumbers
+                ]
+            ];
+            $_response = $this->soapClient->GetTransactionsByList_V2($data);
+
+            $trackingHistory = [];
+
+            foreach (array_filter($_response->GetTransactionsByList_V2Result->PackageTransactionwithDeliveryDetailV2) as $key => $tracking) {
+                $datetime = new DateTime(str_replace("-", "", $tracking->ProcessTimeStamp));
+
+                $trackingHistory[trim($tracking->TrackingNumber)][] = new TrackingProccess([
+                    "Date" => $datetime->format("Y-m-d H:i:s"),
+                    "StatusCode" => $tracking->StatusCode,
+                    "Description" => $this->prepareDescription($tracking),
+                    "Location" => $tracking->OperationBranchName,
+                ]);
+            }
+
+            $response->TrackingHistory = $trackingHistory;
+
+        } catch (\SoapFault $th) {
+            $response->status = false;
+            $response->errorMessage = $th->getMessage();
+            $response->statusCode = $th->getCode();
+        } catch (\Throwable $th) {
+            $response->status = false;
+            $response->errorMessage = $th->getMessage();
+            $response->statusCode = $th->getCode();
+        } finally {
+            $response->requestAsXML = $this->soapClient->__getLastRequest();
+            $response->responseAsXML = $this->soapClient->__getLastResponse();
+            $response->client = $this->soapClient;
+            return $response;
+        }
+    }
+
+    private function prepareDescription($process)
+    {
+        switch ((int)$process->StatusCode) {
+            case 31 :
+                return "ÇAĞRI SONUCU ALINDI";
+                break;
+            case 6 :
+                return $process->ProcessDescription2;
+                break;
+            case 5 :
+                return "KURYE GERİ GETİRDİ ({$process->ProcessDescription2}})";
+                break;
+            case 4 :
+                return "KURYE DAĞITMAK ÜZERE ÇIKARDI ({$process->ProcessDescription2}})";
+                break;
+            case 3 :
+                return "ILERIKI BIR TARIHTE TESLIMAT ICIN BEKLETILIYOR";
+                break;
+            case 2 :
+                return "ALICIYA TESLİM EDİLDİ: {$process->SignedPersonName} {$process->SignedPersonSurname} ({$process->SignedPersonRelation})	";
+                break;
+        }
+
+        throw new \Exception("Unknown StatusCode : {$process->StatusCode}");
     }
 }

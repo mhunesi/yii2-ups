@@ -179,7 +179,7 @@ class ShipmentInfo extends Model
      *
      * @var string
      */
-    public $CustomerReference = "";
+    public $CustomerReferance = "";
 
     /**
      * CustomerInvoiceNumber
